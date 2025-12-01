@@ -1,0 +1,176 @@
+{
+  "Comment": "SCM → Silver Dimension → Silver Fact → Gold Fact → Summary Email → Handle Errors",
+  "StartAt": "RunSilverDimensionJob",
+  "States": {
+    "RunSilverDimensionJob": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun",
+      "Parameters": {
+        "JobName": "scm_create_silver_dimension_data"
+      },
+      "ResultPath": "$.dim_job",
+      "Next": "WaitBeforeCheckSilverDimension"
+    },
+    "WaitBeforeCheckSilverDimension": {
+      "Type": "Wait",
+      "Seconds": 30,
+      "Next": "GetSilverDimensionStatus"
+    },
+    "GetSilverDimensionStatus": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:getJobRun",
+      "Parameters": {
+        "JobName": "scm_create_silver_dimension_data",
+        "RunId.$": "$.dim_job.JobRunId"
+      },
+      "ResultPath": "$.dim_status",
+      "Next": "IsSilverDimensionCompleted"
+    },
+    "IsSilverDimensionCompleted": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.dim_status.JobRun.JobRunState",
+          "StringEquals": "SUCCEEDED",
+          "Next": "ExtractSCMFiles"
+        },
+        {
+          "Variable": "$.dim_status.JobRun.JobRunState",
+          "StringEquals": "FAILED",
+          "Next": "HandleFailure"
+        },
+        {
+          "Variable": "$.dim_status.JobRun.JobRunState",
+          "StringEquals": "Stopped",
+          "Next": "HandleFailure"
+        }
+      ],
+      "Default": "WaitBeforeCheckSilverDimension"
+    },
+    "ExtractSCMFiles": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:ap-southeast-1:340234702481:function:Extract_scm_lambda_southeast_1:$LATEST",
+      "ResultPath": "$.lambda_result",
+      "Next": "RunSilverFactJob",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.TaskFailed"
+          ],
+          "Next": "HandleFailure"
+        }
+      ]
+    },
+    "RunSilverFactJob": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun",
+      "Parameters": {
+        "JobName": "create_silver_fact_data",
+        "Arguments": {
+          "--S3_INPUT_PATHS.$": "$.lambda_result.S3_INPUT_PATHS"
+        }
+      },
+      "ResultPath": "$.fact_job",
+      "Next": "WaitBeforeCheckSilverFact"
+    },
+    "WaitBeforeCheckSilverFact": {
+      "Type": "Wait",
+      "Seconds": 30,
+      "Next": "GetSilverFactStatus"
+    },
+    "GetSilverFactStatus": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:getJobRun",
+      "Parameters": {
+        "JobName": "create_silver_fact_data",
+        "RunId.$": "$.fact_job.JobRunId"
+      },
+      "ResultPath": "$.fact_status",
+      "Next": "IsSilverFactCompleted"
+    },
+    "IsSilverFactCompleted": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.fact_status.JobRun.JobRunState",
+          "StringEquals": "SUCCEEDED",
+          "Next": "RunGoldFactJob"
+        },
+        {
+          "Variable": "$.fact_status.JobRun.JobRunState",
+          "StringEquals": "FAILED",
+          "Next": "HandleFailure"
+        },
+        {
+          "Variable": "$.fact_status.JobRun.JobRunState",
+          "StringEquals": "Stopped",
+          "Next": "HandleFailure"
+        }
+      ],
+      "Default": "WaitBeforeCheckSilverFact"
+    },
+    "RunGoldFactJob": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun",
+      "Parameters": {
+        "JobName": "create_gold_fact_data"
+      },
+      "ResultPath": "$.gold_job",
+      "Next": "WaitBeforeCheckGoldFact"
+    },
+    "WaitBeforeCheckGoldFact": {
+      "Type": "Wait",
+      "Seconds": 30,
+      "Next": "GetGoldFactStatus"
+    },
+    "GetGoldFactStatus": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:getJobRun",
+      "Parameters": {
+        "JobName": "create_gold_fact_data",
+        "RunId.$": "$.gold_job.JobRunId"
+      },
+      "ResultPath": "$.gold_status",
+      "Next": "IsGoldFactCompleted"
+    },
+    "IsGoldFactCompleted": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.gold_status.JobRun.JobRunState",
+          "StringEquals": "SUCCEEDED",
+          "Next": "SendSummaryEmail"
+        },
+        {
+          "Variable": "$.gold_status.JobRun.JobRunState",
+          "StringEquals": "FAILED",
+          "Next": "HandleFailure"
+        },
+        {
+          "Variable": "$.gold_status.JobRun.JobRunState",
+          "StringEquals": "Stopped",
+          "Next": "HandleFailure"
+        }
+      ],
+      "Default": "WaitBeforeCheckGoldFact"
+    },
+    "SendSummaryEmail": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:ap-southeast-1:340234702481:function:send-summary-email-southeast-1:$LATEST",
+      "ResultPath": "$.summary_email",
+      "Next": "EndWorkflow"
+    },
+    "EndWorkflow": {
+      "Type": "Pass",
+      "End": true
+    },
+    "HandleFailure": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:ap-southeast-1:340234702481:function:glue_error_handler_southeast_1:$LATEST",
+      "Parameters": {
+        "errorDetails.$": "$"
+      },
+      "End": true
+    }
+  }
+}

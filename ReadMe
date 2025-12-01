@@ -1,0 +1,35 @@
+Supply chain management Project
+
+Services used - S3, Glue, Lambda, SNS, Event Bridge, Step functions, Cloud watch, IAM
+
+•	Aim is to ingest table data into Data Lakehouse and Data Warehouse.
+
+The starting point of the project is from the arrival of the Fact data from the upstream system. 
+The Fact data will come from ERP, CRM and other project management systems any time in a day. 
+So the data needs to be processed very quickly and make available in the downstream pipeline is crucial. 
+With the help of AWS services, we set up a event driven system that monitors the flow of data, which is a event triggered,
+helps us to process the data very quickly. 
+
+Once the data came into the S3 bucket, through event bridge, the data is verified and processed using lambda and glue. 
+And in case of any failure, we set up a failure notification, using SNS through lambda function.
+
+When the event is triggered the silver_dimension_etl_glue runs to fetch the data from OLTP database, to get the data and 
+process only incremental changes, in case of any update, delete or insert of any records of data, using the help if glue bookmark.
+It captures the only changes made recently starting from the last time it fetched the data. And it stores the data in dimension 
+tables of glue silver database. 
+
+If we are fetching data for the first time, it fetches all the data and by providing the timestamp to track the last fetched date,
+on the further fetching it only takes the data, greater than the last fetched timestamp, By this we are achieving incremental change, 
+instead of processing the whole file. 
+
+And, once the dimension glue job done, it carries out the schema validation check using lambda function. If it fails, it calls
+ the notify_failure_lambda function and through SNS, the notification has sent to the verified email. 
+
+Once the data schema is verified, it is then passed to the silver_fact_etl_glue, which extracts the arrived file in the 
+S3 bucket and upzip, process, and stores the data in glue silver schema facts tables.
+
+And followed by the gold_dimension_etl_glue is called for creating the summary tables from the processed tables. 
+And after successful completion of all the jobs, a Summary email is sent using SNS, through lambda function send_summary_email
+
+
+The Glue scripts are developed and tested in the local IDE spark environment and deployed in AWS Glue jobs.
