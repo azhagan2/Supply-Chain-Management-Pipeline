@@ -1,4 +1,4 @@
-# 🚀 Supply Chain Analytics Platform (Medallion Architecture)
+#  Supply Chain Analytics Platform (Medallion Architecture)
 
 ![AWS](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white)
 ![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white)
