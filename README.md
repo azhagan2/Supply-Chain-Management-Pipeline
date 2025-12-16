@@ -33,7 +33,7 @@ The platform utilizes an event-driven architecture orchestrated by AWS Step Func
 
 | Category | Service | Logo | Description |
 | :--- | :--- | :---: | :--- |
-| **Compute & ETL** | **AWS Glue** | <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Amazon_Glue_Icon.svg/1200px-Amazon_Glue_Icon.svg.png" width="40"/> | Serverless ETL pipelines for Bronze/Silver/Gold processing |
+| **Compute & ETL** | **AWS Glue** | <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/AWS_Glue.png/640px-AWS_Glue.png" width="40"/> | Serverless ETL pipelines for Bronze/Silver/Gold processing |
 | | **AWS Lambda** | <img src="https://upload.wikimedia.org/wikipedia/commons/8/8f/Orange_lambda.svg" width="40"/> | Schema validation and lightweight compute triggers |
 | **Orchestration** | **Step Functions** | <img src="https://icon.icepanel.io/AWS/svg/App-Integration/Step-Functions.svg" width="40"/> | End-to-end workflow management and error handling |
 | **Storage** | **Amazon S3** | <img src="https://upload.wikimedia.org/wikipedia/commons/b/bc/Amazon-S3-Logo.svg" width="40"/> | Data Lake storage backing Apache Iceberg tables |
